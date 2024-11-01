@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regression Line Simulation</title>
+    <style>
+        h1 { color: #e91010; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        label {
+            font-size: 18px;
+            color: #555;
+            margin-right: 10px;
+        }
+        input[type="number"] {
+            padding: 8px;
+            margin: 0 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 80px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background-color: white;
+            margin-top: 30px;
+        }
+        .theorem {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .math {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 1.2em;
+            color: #000000; /* Optional: Change color for emphasis */
+        }
+    </style>
+    <script type="text/javascript" src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+</head>
+<body>
+
+<h2>Regression Line Simulator</h2>
+
+<div class="controls">
+    <label for="numPoints">Number of Data Points:</label>
+    <input type="number" id="numPoints" value="50" min="1" max="1000">
+</div>
+
+<button onclick="simulate()">Simulate</button>
+
+<canvas id="graphCanvas" width="1100" height="800"></canvas>
+
+<script>
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    const margin = 60; // Margin around canvas for axes
+
+    function drawAxes() {
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+
+        // Draw X-axis
+        ctx.beginPath();
+        ctx.moveTo(margin, height - margin);
+        ctx.lineTo(width - margin, height - margin);
+        ctx.stroke();
+
+        // Draw Y-axis
+        ctx.beginPath();
+        ctx.moveTo(margin, margin);
+        ctx.lineTo(margin, height - margin);
+        ctx.stroke();
+
+        // Labels for axes
+        ctx.font = "16px Arial";
+        ctx.fillText("X", width - margin + 20, height - margin );
+        ctx.fillText("Y", margin + 20, margin );
+
+        // Draw tick marks and labels on X-axis
+        for (let i = 0; i <= 10; i++) {
+            const x = margin + i * ((width - 2 * margin) / 10);
+            ctx.beginPath();
+            ctx.moveTo(x, height - margin - 5);
+            ctx.lineTo(x, height - margin + 5);
+            ctx.stroke();
+            ctx.fillText(i, x - 5, height - margin + 20);
+        }
+
+        // Draw tick marks and labels on Y-axis
+        for (let i = 0; i <= 10; i++) {
+            const y = height - margin - i * ((height - 2 * margin) / 10);
+            ctx.beginPath();
+            ctx.moveTo(margin - 5, y);
+            ctx.lineTo(margin + 5, y);
+            ctx.stroke();
+            ctx.fillText(i, margin - 25, y + 5);
+        }
+    }
+
+    function simulate() {
+        const numPoints = parseInt(document.getElementById('numPoints').value);
+        const width = canvas.width - 2 * margin;
+        const height = canvas.height - 2 * margin;
+
+        drawAxes();
+
+        // Generate random points within the defined axis limits
+        const points = [];
+        for (let i = 0; i < numPoints; i++) {
+            const x = Math.random() * 10; // X between 0 and 10
+            const y = 0.5 * x + (Math.random() - 0.5) * 2; // Y related to X with some noise
+            points.push({ x, y });
+        }
+
+        // Calculate regression line
+        const { slope, intercept } = linearRegression(points);
+
+        // Plot points
+        ctx.fillStyle = 'blue';
+        points.forEach(point => {
+            const px = margin + (point.x / 10) * width;
+            const py = canvas.height - margin - (point.y / 10) * height;
+            if (px >= margin && px <= canvas.width - margin && py >= margin && py <= canvas.height - margin) {
+                ctx.beginPath();
+                ctx.arc(px, py, 3, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        });
+
+        // Draw regression line
+        ctx.strokeStyle = 'red';
+        ctx.beginPath();
+        ctx.moveTo(margin, canvas.height - margin - (intercept / 10) * height);
+        ctx.lineTo(margin + width, canvas.height - margin - ((slope * 10 + intercept) / 10) * height);
+        ctx.stroke();
+    }
+
+    function linearRegression(points) {
+        const n = points.length;
+        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+
+        points.forEach(({ x, y }) => {
+            sumX += x;
+            sumY += y;
+            sumXY += x * y;
+            sumXX += x * x;
+        });
+
+        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+
+        return { slope, intercept };
+    }
+</script>
+
+<!-- Additional Text Section -->
+
+<div style="margin-top: 30px; text-align: left; max-width: 800px;">
+    
+    <h1>Cauchy-Schwarz Inequality</h1>
+    <p>The Cauchy-Schwarz inequality (C-S) is one of the fundamental inequalities in algebra and analysis. It states that for every pair of vectors \( \mathbf{u} \) and \( \mathbf{v} \) in a vector space (or more specifically in a Euclidean space), the following inequality holds:</p>
+    
+    <p class="theorem">
+        \[ | \langle \mathbf{u}, \mathbf{v} \rangle |^2 \leq \langle \mathbf{u}, \mathbf{u} \rangle \langle \mathbf{v}, \mathbf{v} \rangle \]
+    </p>
+    
+    <p>where \( \langle \mathbf{u}, \mathbf{v} \rangle \) denotes the inner product between the vectors \( \mathbf{u} \) and \( \mathbf{v} \).</p>
+
+    <h2>Simple Proof</h2>
+
+    <h3>Step 1: Consider the vector</h3>
+    <p>Let \( \mathbf{u} \) and \( \mathbf{v} \) be two vectors in a Euclidean space. Consider the following linear combination of \( \mathbf{u} \) and \( \mathbf{v} \): </p>
+    <p class="theorem"> \[ \mathbf{w} = \mathbf{u} - t \mathbf{v} \] </p>
+    <p>where \( t \) is a real number to be determined.</p>
+
+    <h3>Step 2: Use the inner product</h3>
+    <p>Since the vector \( \mathbf{w} \) must have a non-negative length, we can assert that:</p>
+    <p class="theorem"> \[ \langle \mathbf{w}, \mathbf{w} \rangle \geq 0 \] </p>
+    <p>This implies:</p>
+    <p class="theorem"> \[ \langle \mathbf{u} - t \mathbf{v}, \mathbf{u} - t \mathbf{v} \rangle \geq 0 \] </p>
+
+    <h3>Step 3: Expand the expression</h3>
+    <p>Let's expand the inner product:</p>
+    <p class="theorem"> \[ \langle \mathbf{w}, \mathbf{w} \rangle = \langle \mathbf{u}, \mathbf{u} \rangle - 2t \langle \mathbf{u}, \mathbf{v} \rangle + t^2 \langle \mathbf{v}, \mathbf{v} \rangle \] </p>
+    <p>Thus, we have:</p>
+    <p class="theorem"> \[ \langle \mathbf{u}, \mathbf{u} \rangle - 2t \langle \mathbf{u}, \mathbf{v} \rangle + t^2 \langle \mathbf{v}, \mathbf{v} \rangle \geq 0 \] </p>
+
+    <h3>Step 4: Consider the quadratic polynomial</h3>
+    <p>This is a quadratic equation in \( t \):</p>
+    <p class="theorem"> \[ at^2 + bt + c \geq 0 \] </p>
+    <p>where:</p>
+    <ul>
+        <li> \( a = \langle \mathbf{v}, \mathbf{v} \rangle \) </li>
+        <li> \( b = -2 \langle \mathbf{u}, \mathbf{v} \rangle \) </li>
+        <li> \( c = \langle \mathbf{u}, \mathbf{u} \rangle \) </li>
+    </ul>
+    <p>For this inequality to hold for every \( t \), the discriminant must be non-positive:</p>
+    <p class="theorem"> \[ b^2 - 4ac \leq 0 \] </p>
+
+    <h3>Step 5: Calculate the discriminant</h3>
+    <p>Let's calculate the discriminant:</p>
+    <p class="theorem"> \[ (-2 \langle \mathbf{u}, \mathbf{v} \rangle)^2 - 4 \langle \mathbf{v}, \mathbf{v} \rangle \langle \mathbf{u}, \mathbf{u} \rangle \leq 0 \] </p>
+    <p>This simplifies to:</p>
+    <p class="theorem"> \[ 4 \langle \mathbf{u}, \mathbf{v} \rangle^2 \leq 4 \langle \mathbf{u}, \mathbf{u} \rangle \langle \mathbf{v}, \mathbf{v} \rangle \] </p>
+    <p>Dividing both sides by 4, we obtain the Cauchy-Schwarz inequality:</p>
+    <p class="theorem"> \[ | \langle \mathbf{u}, \mathbf{v} \rangle |^2 \leq \langle \mathbf{u}, \mathbf{u} \rangle \langle \mathbf{v}, \mathbf{v} \rangle \] </p>
+
+    <h2>Conclusion</h2>
+    <p>This is a direct avely simple proof of the Cauchy-Schwarz inequality. It shows how the properties of inner products and linear combinations can be used to establish fundamental relationships between vectors in a Euclidean space.</p>
+
+    <!---------------------------------------------------------------------------------------------------------------->
+    <br>
+    <br>
+    <h1>Relationship Between Independence and Correlation in Statistics</h1>
+
+    <h2>Independence</h2>
+    <p>
+        <strong>Definition:</strong> Two random variables <code>X</code> and <code>Y</code> are said to be independent if the occurrence of one does not affect the probability of occurrence of the other. Mathematically, this is expressed as:
+    </p>
+    <p class="math">\( P(X \cap Y) = P(X) \cdot P(Y) \)</p>
+    <p>for discrete random variables or in terms of their probability density functions (PDFs) for continuous random variables. For joint distributions, independence can also be represented as:</p>
+    <p class="math">\( f_{X,Y}(x,y) = f_X(x) \cdot f_Y(y) \)</p>
+
+    <h3>Key Points:</h3>
+    <ul>
+        <li>Independence implies no relationship whatsoever between the variables.</li>
+        <li>If <code>X</code> and <code>Y</code> are independent, knowing the value of <code>X</code> provides no information about <code>Y</code> and vice versa.</li>
+        <li>Independence is a stronger condition than uncorrelatedness.</li>
+    </ul>
+
+    <h2>Correlation</h2>
+    <p>
+        <strong>Definition:</strong> Correlation measures the strength and direction of a linear relationship between two random variables. The most commonly used correlation coefficient is Pearson's correlation coefficient, defined as:
+    </p>
+    <p class="math">\( \rho_{X,Y} = \frac{Cov(X,Y)}{\sigma_X \sigma_Y} \)</p>
+    <p>where <code>Cov(X,Y)</code> is the covariance between <code>X</code> and <code>Y</code>, and <code>σ<sub>X</sub></code> and <code>σ<sub>Y</sub></code> are the standard deviations of <code>X</code> and <code>Y</code>, respectively.</p>
+
+    <h3>Pearson's Correlation Coefficient:</h3>
+    <ul>
+        <li>Ranges from -1 to 1.</li>
+        <li>A value of 1 indicates a perfect positive linear correlation, -1 indicates a perfect negative linear correlation, and 0 indicates no linear correlation.</li>
+    </ul>
+
+    <h2>Relationship Between Independence and Correlation</h2>
+    <ol>
+        <li><strong>Independence Implies Zero Correlation:</strong>
+            <p>If <code>X</code> and <code>Y</code> are independent, their correlation coefficient is 0, indicating no linear relationship. However, this does not imply that there cannot be a non-linear relationship.</p>
+        </li>
+        <li><strong>Zero Correlation Does Not Imply Independence:</strong>
+            <p>If the correlation coefficient is 0, it does not mean that <code>X</code> and <code>Y</code> are independent. There could be a non-linear relationship that is not captured by the correlation coefficient. For example, consider the relationship defined by <code>Y = X²</code>.</p>
+        </li>
+        <li><strong>Higher Dimensions:</strong>
+            <p>In higher dimensions, independence of random variables means that the joint distribution can be expressed as the product of the marginal distributions. In contrast, correlation measures the linear relationships in multivariate distributions.</p>
+        </li>
+    </ol>
+
+    <h2>Practical Implications</h2>
+    <ul>
+        <li><strong>Statistical Inference:</strong> Understanding the independence of variables is crucial when performing statistical inference, as violating independence assumptions can lead to biased estimates and incorrect conclusions.</li>
+        <li><strong>Model Building:</strong> When building statistical models (e.g., regression), ensuring that predictor variables are independent can help in correctly estimating the effects of each predictor on the response variable.</li>
+    </ul>
+
+    <h2>Summary</h2>
+    <ul>
+        <li><strong>Independence</strong> indicates that two random variables do not influence each other, while <strong>correlation</strong> measures the degree to which they move together in a linear fashion.</li>
+        <li>While independence leads to zero correlation, the absence of correlation does not necessarily indicate independence.</li>
+        <li>Understanding these concepts is critical in fields such as statistics, machine learning, and data analysis, where making accurate predictions and understanding relationships between variables is key.</li>
+    </ul>
+
+    <!---------------------------------------------------------------------------------------------------------------->
+    <br>
+    <br>
+    <h1>Derivation of Regression Coefficients Using the Least Squares Method</h1>
+
+    <p>Consider a simple linear regression model, where the dependent variable is \( y \) and the independent variable is \( x \). We want to model the relationship by expressing:</p>
+
+    <p>\[
+    y = a + bx
+    \]</p>
+
+    <h2>1. Derivation of Coefficients</h2>
+
+    <p>The least squares method aims to minimize the sum of the squared differences (residuals) between the observed values \( y_i \) and the predicted values from the model \( \hat{y_i} \):</p>
+
+    <p>\[
+    \text{Minimize} \quad S = \sum_{i=1}^n (y_i - (a + bx_i))^2
+    \]</p>
+
+    <h3>a. Finding the Slope Coefficient (\( b \))</h3>
+
+    <p>To find the slope coefficient \( b \), we take the derivative of \( S \) with respect to \( b \) and set it equal to zero:</p>
+
+    <ol>
+        <li>Expand the sum of squares:</li>
+        <p>\[
+        S = \sum_{i=1}^n (y_i^2 - 2y_i(a + bx_i) + (a + bx_i)^2)
+        \]</p>
+        
+        <li>Differentiate with respect to \( b \):</li>
+        <p>\[
+        \frac{\partial S}{\partial b} = -2\sum_{i=1}^n y_i x_i + 2b\sum_{i=1}^n x_i^2 + 2a\sum_{i=1}^n x_i
+        \]</p>
+        
+        <li>Set the derivative equal to zero:</li>
+        <p>\[
+        -\sum_{i=1}^n y_i x_i + b\sum_{i=1}^n x_i^2 + a\sum_{i=1}^n x_i = 0
+        \]</p>
+        
+        <li>Rearranging gives:</li>
+        <p>\[
+        b\sum_{i=1}^n x_i^2 + a\sum_{i=1}^n x_i = \sum_{i=1}^n y_i x_i
+        \]</p>
+    </ol>
+
+    <h3>b. Finding the Intercept (\( a \))</h3>
+
+    <p>To find the intercept \( a \), we set the derivative of \( S \) with respect to \( a \) equal to zero:</p>
+
+    <ol>
+        <li>Differentiate with respect to \( a \):</li>
+        <p>\[
+        \frac{\partial S}{\partial a} = -2\sum_{i=1}^n (y_i - (a + bx_i))
+        \]</p>
+        
+        <li>Set the derivative equal to zero:</li>
+        <p>\[
+        -\sum_{i=1}^n (y_i - (a + bx_i)) = 0
+        \]</p>
+        
+        <li>This simplifies to:</li>
+        <p>\[
+        \sum_{i=1}^n y_i = na + b\sum_{i=1}^n x_i
+        \]</p>
+        
+        <li>Rearranging gives:</li>
+        <p>\[
+        a = \frac{\sum_{i=1}^n y_i - b\sum_{i=1}^n x_i}{n}
+        \]</p>
+    </ol>
+
+    <h2>2. Final Formulas for \( a \) and \( b \)</h2>
+
+    <p>To express \( b \) and \( a \) in their final forms, we can use the averages of \( x \) and \( y \):</p>
+
+    <ol>
+        <li>Mean values:</li>
+        <p>\[
+        \bar{x} = \frac{1}{n} \sum_{i=1}^n x_i, \quad \bar{y} = \frac{1}{n} \sum_{i=1}^n y_i
+        \]</p>
+
+        <li>Formula for \( b \):</li>
+        <p>\[
+        b = \frac{\sum_{i=1}^n (x_i - \bar{x})(y_i - \bar{y})}{\sum_{i=1}^n (x_i - \bar{x})^2}
+        \]</p>
+
+        <li>Formula for \( a \):</li>
+        <p>\[
+        a = \bar{y} - b\bar{x}
+        \]</p>
+    </ol>
+
+    <h2>3. Relationship with \( R^2 \)</h2>
+
+    <p>The coefficient of determination \( R^2 \) measures the proportion of variance in the dependent variable that can be explained by the independent variable. It is calculated as follows:</p>
+
+    <p>\[
+    R^2 = 1 - \frac{\text{SS}_{\text{res}}}{\text{SS}_{\text{tot}}}
+    \]</p>
+
+    <p>Where:</p>
+    <ul>
+        <li>\(\text{SS}_{\text{res}} = \sum_{i=1}^n (y_i - \hat{y_i})^2\) (the sum of squared residuals)</li>
+        <li>\(\text{SS}_{\text{tot}} = \sum_{i=1}^n (y_i - \bar{y})^2\) (the total sum of squares)</li>
+    </ul>
+
+    <h3>Final Interpretation</h3>
+
+    <p>\( R^2 \) varies from 0 to 1:</p>
+    <ul>
+        <li>\( R^2 = 0 \): The model does not explain any variability of the response data around its mean.</li>
+        <li>\( R^2 = 1 \): The model explains all the variability of the response data around its mean.</li>
+    </ul>
+
+    <h2>Summary of the Formulas for the Coefficients</h2>
+
+    <ul>
+        <li>Slope coefficient \( b \):</li>
+        <p>\[
+        b = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sum (x_i - \bar{x})^2}
+        \]</p>
+
+        <li>Intercept \( a \):</li>
+        <p>\[
+        a = \bar{y} - b\bar{x}
+        \]</p>
+
+        <li>Coefficient of determination \( R^2 \):</li>
+        <p>\[
+        R^2 = 1 - \frac{\text{SS}_{\text{res}}}{\text{SS}_{\text{tot}}}
+        \]</p>
+    </ul>
+
+</div>
+
+<div style="margin-top: 30px; text-align: left; max-width: 800px;"></div>
+
+</div>
+</body>
+</html>
